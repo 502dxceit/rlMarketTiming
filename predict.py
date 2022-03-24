@@ -30,7 +30,7 @@ class Predictor:
     
     def load_watchlist(self):
         '''
-        return self.ds.load_watchlist()
+        return self.ds.load_watchlist() # later
         '''
         return WatchList
 

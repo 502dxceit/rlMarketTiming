@@ -94,7 +94,7 @@ class Preprocessor():
             however, remember indicators mostly are around [0,100]?
             in that case, we better unify the scales
         '''
-        df = self.df if df is None else df
+        df = self.df if df is None else df  # 当df为空时，默认拿self.df来处理
         if self.normalization == 'div_self':# 将ochlva处理为涨跌幅
             df[oclhva_after] = df[oclhva].pct_change(1).applymap('{0:.06f}'.format)
         elif self.normalization == 'div_pre_close':# 将ochl处理为相较于前一天close的比例，除volume和amount外
