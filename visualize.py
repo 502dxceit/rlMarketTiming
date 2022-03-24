@@ -83,7 +83,7 @@ class WebServer:
         df = self.df2[['date','ticker','action']]
         df[['action']] = df[['action']].applymap(lambda x:{-1:"sell",0:"hold",1:"buy"}[x])
         st.table(df.sample(4))  # watchlist table, .write(), .table(), .dataframe()
-        # 下面两行都可以
+        # 下面两行都可以，绘图软件尝试换成plotnine
         # fig = df.iplot(asFigure=True,subplots=True,shape=(3,2),mode='lines+markers',theme='ggplot')
         fig = self.df[-100:][['close','action','reward']].figure(subplots=True,shape=(3,1),mode='lines+markers',theme='ggplot') 
         st.plotly_chart(fig)
