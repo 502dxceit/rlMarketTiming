@@ -95,6 +95,8 @@ def depict(s:pd.Series,peaks:pd.Index,bottoms:pd.Index)->None:
     for b in bottoms: plt.text(x=b, y=s.loc[b], s='o',color="#41ae3c") # 宝石绿 http://zhongguose.com/#baoshilv
     plt.show()
 
+##########################
+
 def time_cost(func):
     def wrapper(*args, **kwargs):
         start_time = datetime.datetime.now()
