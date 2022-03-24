@@ -1,6 +1,8 @@
 # CAUTION: globals variables could be imported by other modules widely, so don't do it wildly. 
-# Any modification may cause unpredictable consequence!
+# Any modification may lead to unpredictable consequence!
+import os
 MAIN_PATH = '/Users/yin/Library/CloudStorage/OneDrive-Personal/2.doing/rlMarketTiming' # will be altered only by main.py, and referenced by others
+# MAIN_PATH = os.getcwd()
 
 indicators = ['kdjk', 'kdjd', 'kdjj', "rsi_6", "rsi_12", "rsi_24",'cr',"boll","boll_ub","boll_lb","wr_10","wr_6","cci","dma"] # 14
 oclhva = ["open", "close", "high", "low", "volume","amount"]  # 6 fields need to be normalized
