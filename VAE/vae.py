@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import pandas as pd
 import matplotlib.pyplot as plt 
-from globals import indicators, mkt_indicators, oclhva_after, window_size, MAIN_PATH  #
-from data_work import DataStorage
+from ..globals import indicators, mkt_indicators, oclhva_after, window_size, MAIN_PATH  #
+from ..data_work import DataStorage
 import pysnooper
 from tqdm import tqdm
 
