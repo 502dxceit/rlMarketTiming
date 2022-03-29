@@ -112,7 +112,7 @@ class Preprocessor():
             d = df[oclhva] 
             r = d.rolling(self.windowsize) 
             df[oclhva_after] = (d-r.min())/(r.max()-r.min())
-        elif self.normalization == 'running':# do running smooth in a sliding window, where $x_t = theta*x_{t-1} + (1-theta)&x_t$
+        elif self.normalization == 'momentum':# do running smooth in a sliding window, where $x_t = theta*x_{t-1} + (1-theta)&x_t$
             d = df[oclhva] 
             r = d.rolling(self.windowsize) 
             df[oclhva_after] = (d-r.min())/(r.max()-r.min())
