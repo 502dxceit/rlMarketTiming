@@ -96,11 +96,13 @@ def depict(s:pd.Series,peaks:pd.Index,bottoms:pd.Index)->None:
     plt.show()
 
 def time_cost(func):
+    # train 要求返回reward与action
     def wrapper(*args, **kwargs):
         start_time = datetime.datetime.now()
-        func(*args, **kwargs)
+        res = func(*args, **kwargs)
         end_time = datetime.datetime.now()
         print("{} completed,time used:{}".format(func.__name__,end_time - start_time))
+        return res
     return wrapper
 
 def inf2max(df:pd.DataFrame)->pd.DataFrame:

@@ -23,10 +23,12 @@ from DQN.env import StockMarketEnv
 from data_work import DataStorage
 from preprocess import Preprocessor
 from utils import time_cost, error_report,createdir_if_none
+import pandas as pd
+from evaluate import Evaluator
 
 config = {
     "algo": "DQN",
-    "train_eps": 100,
+    "train_eps": 2, # 100
     "eval_eps": 5,
     "gamma": 0.95,
     "epsilon_start": 0.90,
@@ -45,7 +47,7 @@ config = {
 
 # convert dict to namedtuple for more pythonic access
 # visit its property as 'cfg.batch_size'
-cfg = namedtuple("Config",config)(**config) 
+cfg = namedtuple("Config",config)(**config)     # 字典这么操作，就可以用.调用
 
 class Trainer:
     def __init__(self, config, agent, env) -> None:
@@ -66,11 +68,14 @@ class Trainer:
     def load_data(self):
         return self.ds.load_processed()
 
-    def save_data(self,actions:list[int], rewards:list[float]):
+    def save_data(self,actions:list[int], rewards:list[float], episode:str):
         '''actions is a list of actions, for performance evaluation'''
-        self.df['action'] = actions
-        self.df['reward'] = rewards
-        return ds.save_trained(self.df)
+        ds = DataStorage()
+        # 列长度不匹配，缺的列补位0存起
+        self.env.df['action'] = actions + [0]*(self.env.df.__len__()-actions.__len__())
+        self.env.df['reward'] = rewards + [0]*(self.env.df.__len__()-actions.__len__())
+        self.env.df['episode'] = [episode]*self.env.df.__len__()
+        return ds.save_trained(self.env.df)
 
     def load_model(self):
         self.agent.load()
@@ -88,7 +93,7 @@ class Trainer:
             running_reward = 0
             # state问题
             @retry(retry_on_exception=error_report,stop_max_attempt_number=5) # a more elegant error_handler than "try-except"
-            def temfun(state, running_reward):  # 初始state传参进去
+            def temfun(state, running_reward):  # 初始state传参进去     # 闭包
                 actions,rewards =[], []
                 done = False
                 step = 0
@@ -109,16 +114,25 @@ class Trainer:
             actions, rewards = temfun(state, running_reward)
             # if (episode + 1) % self.config["save_model"] == 0:
             self.agent.save(episode)  # save DQN model to pth
-            self.ds.save_trained(actions,rewards) # save trained data to table 'trained', appending 'actions', 'rewards'
+            # self.ds.save_trained()
+            
+            self.save_data(actions, rewards, episode) # save trained data to table 'trained', appending 'actions', 'rewards'
+            # 这里train_data我放在另一个表里，并且如果evaluate在这里进行，实际上这一步不需要输入episode
+            print("save_trained!")
+            # evaluate #
+            evaluated = Evaluator(self.env.df, episode)     
 
+            # evaluate #
             if (episode + 1) % self.config["target_update"] == 0:  # update the target_net from policy_net
                 self.agent.target_net.load_state_dict(self.agent.policy_net.state_dict())
             # if (episode + 1) % self.config['change_tic'] == 0:
             #     print("change at {}".format(episode))
             #     time.sleep(30)
             #     self.env.creat_df()
-            
-        return actions, rewards
+
+        # print(actions, rewards, '----------')
+        return (actions, rewards)
+
 
 if __name__ == "__main__":
     '''load processed data, initiate training, then save to trained'''

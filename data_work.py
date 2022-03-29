@@ -14,7 +14,7 @@ DATABASE_PATH = os.getcwd()     # 解决方法
 print(DATABASE_PATH + "-------------------------------")
 RAW_DATA = "downloaded" # by 'date'
 PROCESSED_DATA = "downloaded" # by 'date'
-TRAINED_DATA = "downlowded" #  by 'date'
+TRAINED_DATA = "downlowded_tarined" #  by 'date'
 EVALUATED_DATA = "downloaded" # by 'date' 下一回合数据到来的时候即清空
 TRAIN_HISTORY_DATA = "train_history" # by 'episode'  长期保存做评估
 ACTION_HISTORY_DATA = "action_hisory" #  by 'action' action_history结构和evaluated一样，但去掉了action==0的记录，供长期保存做评估
@@ -139,8 +139,13 @@ class DataWorker(object):
         return stock, market
 
 if __name__ == "__main__":
-    raw_data = DataWorker().get()
-    ds = DataStorage()
-    ds.save_raw(df = raw_data) 
-    print(raw_data)
+    # raw_data = DataWorker().get()
+    # ds = DataStorage()
+    # ds.save_raw(df = raw_data) 
+    # print(raw_data)
+    dw = DataWorker()
+    
+    print(dw.all_tickers.sample(1).iloc[0].ts_code)
+
+
 

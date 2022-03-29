@@ -23,6 +23,7 @@ import numpy as np
 from DQN.memory import ReplayBuffer
 from DQN.model import MLP
 import torch.nn.functional as F
+import warnings
 
 MODEL_PATH = r'./dqn.pth'
 
@@ -64,8 +65,12 @@ class DQN:
             # print(type(state))
             state = torch.tensor(state, device=self.device, dtype=torch.float32)  # [state] -> state
             q_values = self.policy_net(state)
-            print(q_values, type(q_values))
-            action = q_values.tolist().index(q_values.max()) # 这句话怎么理解 #
+            # print(q_values, type(q_values))
+            try:
+                action = q_values.tolist().index(q_values.max()) # 这句话怎么理解 #
+            except ValueError:
+                warnings.warn("nan q_values")
+                action = 1
         return action
 
 
@@ -88,7 +93,8 @@ class DQN:
         q_values = self.policy_net(state_batch).gather(dim=1, index=action_batch)  # 等价于self.forward
 
         # 计算所有next states的V(s_{t+1})，即通过target_net中选取reward最大的对应states
-        next_q_values = self.target_net(next_state_batch)[0].max(1)[0].detach()  # 比如tensor([ 0.0060, -0.0171,...,])
+        
+        next_q_values = self.target_net(next_state_batch).max(1)[0].detach()  # 比如tensor([ 0.0060, -0.0171,...,])
         # 计算 expected_q_value
         # 对于终止状态，此时done_batch[0]=1, 对应的expected_q_value等于reward
         expected_q_values = reward_batch + self.gamma * next_q_values * (1-done_batch)

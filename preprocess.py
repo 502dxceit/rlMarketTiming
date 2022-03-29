@@ -96,7 +96,7 @@ class Preprocessor():
         '''
         df = self.df if df is None else df
         if self.normalization == 'div_self':# 将ochlva处理为涨跌幅
-            df[oclhva_after] = df[oclhva].pct_change(1).applymap('{0:.06f}'.format)
+            df[oclhva_after] = df[oclhva].pct_change(1).applymap('{0:.06f}'.format)     #volume 出现 前一天极小后一天极大时，pct_change会非常大
         elif self.normalization == 'div_pre_close':# 将ochl处理为相较于前一天close的比例，除volume和amount外
             df['open_'] =(df.open-df.pre_close)/df.pre_close
             df['close_'] =(df.close-df.pre_close)/df.pre_close
@@ -109,6 +109,10 @@ class Preprocessor():
             r = d.rolling(self.windowsize)
             df[oclhva_after] = (d-r.mean())/r.std()
         elif self.normalization == 'standardization':# do standardization in a sliding window
+            d = df[oclhva] 
+            r = d.rolling(self.windowsize) 
+            df[oclhva_after] = (d-r.min())/(r.max()-r.min())
+        elif self.normalization == 'momentum':# do running smooth in a sliding window, where $x_t = theta*x_{t-1} + (1-theta)&x_t$
             d = df[oclhva] 
             r = d.rolling(self.windowsize) 
             df[oclhva_after] = (d-r.min())/(r.max()-r.min())
@@ -129,7 +133,7 @@ class Preprocessor():
         # note : 'df' must be indexed from 0 on, otherwize the slicing might malfunction
         d = df[[*indicators,*oclhva_after]] # v1 只embedd这些字段
         # d = df[[*tech_indicator_list,*after_norm, *mkt_indicators, *mkt_after_norm]] # v2
-        matrices = [x.values for x in d.rolling(self.windowsize)][self.windowsize-1:]# don't ask me, try it out youself
+        matrices = [x.values for x in d.rolling(self.windowsize)][self.windowsize-1:]# don't ask me, try it out youself     # embeding rolling_windows
         # matrices = list(map(lambda x:x.values, d.rolling(self.windowsize)))[self.windowsize-1:]# don't ask me, try it out youself
         # an array of windows each containing a matrix for encoding later on
 

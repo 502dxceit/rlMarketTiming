@@ -11,6 +11,7 @@ from DQN.env import state_space, action_space
 from utils import str2nparray
 from retrying import retry
 import pysnooper
+import globals
 
 WatchList = [
     '000555.SZ',
@@ -20,7 +21,7 @@ WatchList = [
 class Predictor:
 
     def __init__(self,model_path = MODEL_PATH,watch_list=WatchList):
-        self.agent = DQN(state_space, action_space.n, **config).target_net
+        self.agent = DQN(state_space, action_space, **config)   # .target_net
         self.agent.load(model_path)
         self.watchlist = watch_list if watch_list else self.load_watchlist() 
         self.ds = DataStorage()
@@ -45,9 +46,10 @@ class Predictor:
         '''given a (latest) state, yields an action
             这个函数和DQN.predict() 似乎不统一，DQN.predict()返回的本来就是action啊！待调试
         '''
-        q_values = self.agent.predict(state)
+        action = self.agent.predict(state)    # 这一步直接返回预测值了最大Q值
+        # print(q_values)
         # return self.agent.predict(state) # 应该这样就可以了的?
-        action = q_values.tolist().index(q_values.max()) - 1 # 直接返回[-1,0,1] 的值不就行了？
+        # action = q_values.tolist().index(q_values.max()) - 1 # 直接返回[-1,0,1] 的值不就行了？
         # action_map = {-1:'sell',0:'hold',1:'buy'}
         # action = action_map[action]
         return action 
@@ -56,7 +58,8 @@ class Predictor:
         ''' given a ticker, returns a series of 'state's, as np.array
         '''
         df = self.get_data(ticker = ticker)
-        ss = [str2nparray(e) for e in df.embedding] # "1.1,3.0,6.2,3.8" => np.array([1.1,3.0,6.2,3.8])
+        # ss = [str2nparray(e) for e in df.embedding] # "1.1,3.0,6.2,3.8" => np.array([1.1,3.0,6.2,3.8]) # now without embedding
+        ss = df.loc[df.index[-1], globals.indicators]
         return ss # return last embedding tensor as state
 
     def watch(self,watchlist=WatchList)->list[tuple]:
@@ -64,9 +67,9 @@ class Predictor:
             returns a list of tuples or, returns a pd.Dataframe
             this function can be replace by latest_actions(·) 
         '''
-        result = [(self.end_time, t,self.predict(self.get_state(t)[-1])) for t in watchlist]
+        result = [(self.end_time, t,self.predict(self.get_state(t))) for t in watchlist]
         df = pd.DataFrame(result,columns=['date','ticker','action'],dtype=int)
-        self.ds.save_predicted(df[df.action.isin([-1,1])], if_exists = 'append') # save only action in [-1,1]
+        self.ds.append_predicted(df[df.action.isin([-1,1])], if_exists = 'append') # save only action in [-1,1]
         return result # or, df
     
     def trend(self,ticker:str)->pd.DataFrame:

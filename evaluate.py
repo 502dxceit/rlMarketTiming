@@ -4,6 +4,10 @@ import pandas as pd
 import datetime
 from data_work import DataStorage
 from functools import reduce
+import warnings
+import pysnooper
+
+# from main import train    
 
 class Evaluator():
     '''
@@ -14,17 +18,34 @@ class Evaluator():
         - 假设有100%资产，按照action操作，资产变化情况如何？增加一个字段d.asset_pctChg
         注：reward的设计，已经充分体现了动作的精度：越接近同买同卖点分数越高，因此不再需要分类指标来表达
     '''
-    def __init__(self):
+    def __init__(self, trained = None, episode = None):
+        self.episode = episode  # episode from train process
         self.ds = DataStorage()
         # before: trained.columns = ['date','ticker','landmark','close','action','reward']
         # after: evaluated.columns = ['date','ticker','landmark','close','action','reward','asset_pct_chg'] 
-        self.trained = self.ds.load_trained()  
+        self.trained = self.ds.load_trained() if trained is not None else trained
         # train_history.columns =  ['episode','ticker','train_date','mean','std','asset_change']
-        self.train_history = self.ds.load_train_history() 
+
+        # 之前没有存过train_history？
+        try:
+            self.train_history = self.ds.load_train_history() 
+
+        except:
+            warnings.warn("no train_histroy in db, ebaluate_34 line")
+            self.save_train_history()
+
         # action_history.columns =  ['date','ticker','action','reward','asset_change'] 
-        self.action_history = self.ds.load_action_history() 
+        try:
+            self.action_history = self.ds.load_action_history() 
+        except:
+            warnings.warn("no action_history in db, evaluate_41 line")
+
         # predicted.columns = ['predict_date','ticker','action','asset_pct_chg']
-        self.predicted = self.ds.load_predicted() # columns=['date','ticker','action']
+        try:
+            self.predicted = self.ds.load_predicted() # columns=['date','ticker','action'] 
+        except:
+            warnings.warn("no predicted in db, evaluate_41 line")
+        
         self.trained = self.trained.update(self.asset_change(do_short=False),join='left', overwrite=True) # 或者基于index合并，right_index = True
     
     def asset_change(self, do_short = False) -> pd.DataFrame:
@@ -59,18 +80,28 @@ class Evaluator():
 
     def asset_change_eps(self) -> float:
         '''calculate asset change by percent after the whole episode'''
-        return reduce(lambda a,b:a*(1+b),self.asset_change().asset_pct_chg,1)
+        return reduce(lambda a,b:a*(1+b),self.asset_change().asset_pct_chg,1)   # 累乘
 
+    
     def save_train_history(self):
         '''note: df does not resemble self.df loaded from trained, 'date' in consecutive manner
             instead, ds.save_actioned() only reserves the action in [-1,1] and its asset returns
             and ds.save_evaluated() the mean/std reward/per episode
         '''
+        
         # train_history ['episode','ticker','train_date','count',	'mean',	'std',	'min',	'25%',	'50%',	'75%','max','asset_pct_chg']
         df = self.trained[['reward']].describe().T  #注意这里必须两个方括号'[['，一个都不行,  self.trained.reward是series，更不行
-        df[['date']] = datetime.now().strftime("%Y%m%d") # 增加当天日期字段
-        df[['episode']] = self.trained.episode.iloc[0]   # 增加episode字段
-        df[['ticker']] = self.trained.ticker.iloc[0]     # 增加ticker字段
-        df[['asset_pct_chg']] = self.asset_change_eps()  # 增加asset_pct_chg字段
-        self.ds.save_train_history(df, if_exists = 'append') # train_history，predicted和action_history是append的
+
+        df['date'] = datetime.datetime.now().strftime("%Y%m%d") # 增加当天日期字段
+
+        # 不存在episode字段会报错
+
+        df['episode'] = self.episode  # 增加episode字段
+        df['ticker'] = self.trained.ticker.iloc[0]     # 增加ticker字段
+        df['asset_pct_chg'] = self.asset_change_eps()  # 增加asset_pct_chg字段
+        
+        # self.ds.save_train_history(df, if_exists = 'append') # train_history，predicted和action_history是append的
+
+        self.ds.append_train_history(df, if_exists = 'append')
+        
         return df

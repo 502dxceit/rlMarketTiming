@@ -15,8 +15,8 @@ import pysnooper
 from globals import *
 
 commission = 0.001 # 小于交易成本，投资没有意义
-state_space = 11 # DQN.input_dim = len([*tech_indicator_list, *after_norm])
-action_space = spaces.Box(low=np.array([0, 0]), high=np.array([10, 10]), dtype=np.float16) 
+state_space = 14 # DQN.input_dim = len([*tech_indicator_list, *after_norm])
+action_space = 3 # spaces.Box(low=np.array([0, 0]), high=np.array([10, 10]), dtype=np.float16) 
 observation_space = spaces.Box(low=100, high=100, shape=(5,), dtype=np.float16)
 
 class StockMarketEnv(gym.Env):
@@ -37,8 +37,7 @@ class StockMarketEnv(gym.Env):
         # note: 'embedding' is a string format vector as "25.3,23,67.0,23.1,62.12"
         self.df = self.ds.load_processed() if df is None else df
         self.window_size = 1    # 后面注意和globals.window_size 匹配
-        self.state_space = (indicators + oclhva_after).__len__() * self.window_size
-        print(self.state_space)
+        self.state_space = (indicators).__len__() * self.window_size    #  + oclhva_after
         self.reset()
         
 
@@ -67,12 +66,22 @@ class StockMarketEnv(gym.Env):
         # y1, y2 = y1, y2 if y1.landmark == s else y2, y3     # me :?
         y1, y2 = y1 if y1.landmark == s else y2, y2 if y1.landmark == s else y3
         # 按上述方法yi 是一个序列，下面得把yi中的close拿出来
-        if action in [1,-1]: 
-            # r_ = abs(y2.price - price) / (abs(price - y1.price) + epsilon) 
-            r_ = abs(y2.close - price) / (abs(price - y1.close) + epsilon) 
-        #   r = np.tanh(abs(y2.price - price) - abs(price - y1.price)) # alternative
-        else : 
-            r_ = min(abs(price - y1.close), abs(price - y2.close))/(abs(price - (y1.close + y2.close)/2) + epsilon) 
+        # yi总是出现变成tuple的情况？
+        y1 = pd.Series(y1)
+        y2 = pd.Series(y2)
+        try:
+            if action in [1,-1]: 
+                # r_ = abs(y2.price - price) / (abs(price - y1.price) + epsilon) 
+                r_ = abs(y2.close - price) / (abs(price - y1.close) + epsilon) 
+            #   r = np.tanh(abs(y2.price - price) - abs(price - y1.price)) # alternative
+            else : 
+                # print(y2, type(y2))   y2可能变成tuple?
+                
+                
+                    r_ = min(abs(price - y1.close), abs(price - y2.close))/(abs(price - (y1.close + y2.close)/2) + epsilon) 
+        except:
+                # 该字段y2只有一列数据date？
+            return 0
         return np.tanh(np.log(r_)) 
     
     def step(self, action:int) : # -> np.array, float, bool, dict:
@@ -87,7 +96,7 @@ class StockMarketEnv(gym.Env):
         try:
             i, row = next(self.step_iter) # (index,[datetime,o,c,l,h,v,t ...], landmarks, episode done or not)
             done = True if i == len(self.df)-1 else False # is last row of data, don't try next lah.
-            state_ = row[indicators + oclhva_after] # str2nparray(row.embedding) #"2.3, 3.2, 1.6, 0.1, ..." -> '"np.array[2.3,3.2,1.6,0.1,...]"
+            state_ = row[indicators] #  + oclhva_after str2nparray(row.embedding) #"2.3, 3.2, 1.6, 0.1, ..." -> '"np.array[2.3,3.2,1.6,0.1,...]"
             # print(row)
             reward = self.reward(action,day = row.date, price = row.close) 
             info = {}
