@@ -42,11 +42,11 @@ def base_landmarks(df:pd.DataFrame):
     # y-x<0 and y-z > 0 \   -     d.diff(1)<0 and d.diff(-1)>0
     # y-x>0 and y-z > 0 ^   peak  d.diff(1)>0 and d.diff(-1)>0
     # y-x<0 and y-z < 0 v   bottom   d.diff(1)<0 and d.diff(-1)<0
-    d.loc[(d.close.diff(1)>0)&(d.close.diff(-1)<0),'landmark'] = '/'
-    d.loc[(d.close.diff(1)<0)&(d.close.diff(-1)>0),'landmark'] = '\\'
-    d.loc[(d.close.diff(1)>0)&(d.close.diff(-1)>0),'landmark'] = '^'
-    d.loc[(d.close.diff(1)<0)&(d.close.diff(-1)<0),'landmark'] = 'v'
-    return d[d.landmark.isin(['^','v'])]  # .index
+    d.loc[(d.close.diff(1)>0)&(d.close.diff(-1)<0),'landmark'] = '/'  # 上涨中
+    d.loc[(d.close.diff(1)<0)&(d.close.diff(-1)>0),'landmark'] = '\\' # 下跌中
+    d.loc[(d.close.diff(1)>0)&(d.close.diff(-1)>0),'landmark'] = '^'  # 波峰
+    d.loc[(d.close.diff(1)<0)&(d.close.diff(-1)<0),'landmark'] = 'v'  # 波谷
+    return d[d.landmark.isin(['^','v'])]  # .index 找出所有拐点
 
     
 def landmarks(df:pd.DataFrame, D = 10, P=0.05):
@@ -55,12 +55,12 @@ def landmarks(df:pd.DataFrame, D = 10, P=0.05):
     href="http://citeseer.ist.psu.edu/viewdoc/download?doi=10.1.1.120.3361&rep=rep1&type=pdf"
     remove two adjacent points $(x_i,y_i) ,(x_{i+1},y_{i+1})$ if  $x_{i+1}-xi < D$ and $\frac{|y_{i+1}-y_i|}{(|y_i|+|y_{i+1|)/2}} <P$
     '''
-    bl = base_landmarks(df)
+    bl = base_landmarks(df)     # 找出所有的拐点
     index_list = bl.index.to_list()
     # v1  优雅了优雅了，虽然有bug，不能用  
     # for _ in range(D):
     #     d = d[~(2*abs(d.close.diff(1))/(abs(d.close)+abs(d.close.shift(1)))<P)] # 找出相邻点满足变化<P的数据行
-    # 先来一个丑陋的版本顶着用 v1
+    # 先来一个丑陋的版本顶着用 v2
     # lm = [
     #     index_list[i]
     #     for i in range(len(index_list)-1)
@@ -94,6 +94,8 @@ def depict(s:pd.Series,peaks:pd.Index,bottoms:pd.Index)->None:
     for p in peaks: plt.text(x=p, y=s.loc[p], s='x', color="#f03752") # 海棠红 http://zhongguose.com/#haitanghong
     for b in bottoms: plt.text(x=b, y=s.loc[b], s='o',color="#41ae3c") # 宝石绿 http://zhongguose.com/#baoshilv
     plt.show()
+
+##########################
 
 def time_cost(func):
     # train 要求返回reward与action

@@ -9,7 +9,7 @@ from globals import MAIN_PATH   #
 import pysnooper
 
 DATABASE = "stock.db"
-DATABASE_PATH = MAIN_PATH  # 这句话在其他import的时候就已经执行，所以未必能达到想要的效果 :# 直接调用上面globals.MAIN_PATH 导致不能正确建立conn，main不能及时修改globals.MAIN_PATH
+DATABASE_PATH = MAIN_PATH  # 这句话在其他import的时候就已经执行，所以未必能达到想要的效果 # 直接调用上面globals.MAIN_PATH 导致不能正确建立conn，main不能及时修改globals.MAIN_PATH
 DATABASE_PATH = os.getcwd()     # 解决方法
 print(DATABASE_PATH + "-------------------------------")
 RAW_DATA = "downloaded" # by 'date'
