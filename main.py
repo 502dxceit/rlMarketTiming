@@ -15,12 +15,12 @@ from preprocess import Preprocessor
 from predict import Predictor, WatchList
 from evaluate import Evaluator
 from DQN.env import StockMarketEnv
-
 from DQN.agent import DQN
 from DQN.train import Trainer, config
 from visualize import WebServer
 from utils import time_cost
 from globals import MAIN_PATH
+import pysnooper
 
 def test_webserver():
     ws = schedule.get_jobs("webserver")
@@ -33,22 +33,21 @@ def train(ts_embedded):
     agent = DQN(env.state_space, env.action_space.n, **config)
     trainer = Trainer(config, agent, env)
     trainer.create_data_dir()
-    res= trainer.train()    # res: tuple(actions[], rewards[])
-    
-    return res[1]
+    _ , rewards= trainer.train()    # res: tuple(actions[], rewards[])
+    return rewards
 
 @time_cost
 def train_job():
     ds = DataStorage()
-    raw_data = DataWorker().get() # 1 get data from tushare     # DataWorker.get() -> DataWorker().get()
+    raw_data = DataWorker().get() # 1.get data from tushare     # DataWorker.get() -> DataWorker().get()
     ds.save_raw(raw_data)
-    train_data = Preprocessor(df=raw_data).bundle_process() # 2 do preprocess
+    train_data = Preprocessor(df=raw_data).bundle_process() # 2.do preprocess
     ds.save_processed(train_data) 
     # train_data['embedding'].apply(lambda x:float(x)) # embedding 不是形如 "AAAAA, BBBBB, CCCCC"的向量吗？
     # zz = [torch.Tensor(list(map(float, v.split(",")))) for v in train_data.embedding] # a series of embeddings
     # zz = strSeries2TensorList(data.embedding)
     reward = train(train_data)  # []
-    train_data["reward"] = reward + [0]*(train_data.__len__()-reward.__len__()) # train(zz) # 3 train on data with model saved in model.pth and signals in table 'evaluated'
+    train_data["reward"] = reward + [0]*(train_data.__len__()-reward.__len__()) # train(zz) # 3.train on data with model saved in model.pth and signals in table 'evaluated'
     # 仍然存在的问题，输出的reward序列为何不与原本的train序列等长？
 
     
@@ -64,13 +63,11 @@ def predition_job():
     return actions    
 
 if __name__ == "__main__":
-    import pysnooper
     
     MAIN_PATH = os.getcwd()
     print("working on ",MAIN_PATH)
     # WebServer().run()
-    # @pysnooper.snoop("outlog.txt")
-    # pysnooper at evaluate.save_train_history
+    # @pysnooper.snoop("outlog.txt") # pysnooper at evaluate.save_train_history
     # def func():
     #     train_job()
     # func()    # debugged fine
