@@ -95,13 +95,9 @@ class Evaluator():
         df['date'] = datetime.datetime.now().strftime("%Y%m%d") # 增加当天日期字段
 
         # 不存在episode字段会报错
-
-        df['episode'] = self.episode  # 增加episode字段
-        df['ticker'] = self.trained.ticker.iloc[0]     # 增加ticker字段
+        df['episode'] = self.episode  # 增加episode字段，可以考虑不要这个字段，因为是append进表的，表的index就是递增
+        df['ticker'] = self.trained.ticker.iloc[0]     # 增加ticker字段，这种写法仅对一个episode一个股票有效
         df['asset_pct_chg'] = self.asset_change_eps()  # 增加asset_pct_chg字段
-        
-        # self.ds.save_train_history(df, if_exists = 'append') # train_history，predicted和action_history是append的
-
-        self.ds.append_train_history(df, if_exists = 'append')
+        self.ds.append_train_history(df) # train_history，predicted和action_history是append的
         
         return df
