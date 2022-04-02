@@ -90,8 +90,9 @@ class DataStorage():
 class DataWorker(object):
     def __init__(self) -> None:
         super().__init__()
-        self.tushare_token = "c576df5b626df4f37c30bae84520d70c7945a394d7ee274ef2685444"
-        ts.set_token(self.tushare_token)
+        tushare_token = "c576df5b626df4f37c30bae84520d70c7945a394d7ee274ef2685444"
+        # tushare_token = "72d1e47c3b0728a26bfc4a9f54132b195890fa843815f896708515f1" # 294694@tushare.pro的token
+        ts.set_token(tushare_token)
         self.pro = ts.pro_api()
 
     @property
