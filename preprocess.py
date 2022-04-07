@@ -20,6 +20,8 @@ class Preprocessor():
         self.ds = DataStorage()
         self.dw = DataWorker()
         self.df = self.ds.load_raw() if df is None else df
+
+        # self.df = self.dw.get() if df is None else df
         self.normalization = 'div_pre_close' # 'div_pre_close' | 'div_self' |'standardization' | 'z-score' 
         # 注：最后进行embedding的是[*tech_indicator_list，*oclhva_after] 这几个字段
         self.windowsize = 20

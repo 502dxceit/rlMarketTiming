@@ -54,10 +54,10 @@
 
 # pysnooper 只会Log最外层
 
-import pandas as pd
-import numpy as np
-df = pd.DataFrame(np.zeros((3,3)))
-print(df.loc[df.index[-1], 0])
+# import pandas as pd
+# import numpy as np
+# df = pd.DataFrame(np.zeros((3,3)))
+# print(df.loc[df.index[-1], 0])
 
 # class A:
 #     def __init__(self):
@@ -65,9 +65,59 @@ print(df.loc[df.index[-1], 0])
 
 # A().start()
 
-# import sqlite3
-# import pandas as pd
+import sqlite3
+import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_sql("SELECT * FROM train_history", sqlite3.connect('stock.db'))
+print(df)
+plt.plot(df.loc[:, 'mean'])
+plt.show()
 
-# df = pd.read_sql("SELECT * FROM downlowded_tarined", sqlite3.connect('stock.db'))
-# print(df.columns)
+# encoder3* 
+# 301097.SZ
+# import copy
+# from data_work import DataWorker, DataStorage
+# df = DataWorker().get("301133.SZ")
+# import numpy as np
+# iterow = df.rolling(20) # .iterrows()
+# # count = 0
+# # li = []
+# iterow = iterow.__iter__()
+
+# next(iterow)
+# next(iterow)
+# arr = next(iterow).loc[:, ["open", "high"]].values.flatten()
+# arr_ = np.pad(arr, (0, 0), 'constant', constant_values=(0, 0))
+# print(arr_)
+
+# while True:
+#     next(iterow)
+    
+# li = [i.values for i in iterow]
+# print(li.__len__())
+
+# print(iterow)
+# print(next(iterow))
+# print(next(iterow))
+# print(type(iterow))
+
+
+
+# from DQN.env import StockMarketEnv
+# import pandas as pd
+# print(StockMarketEnv(pd.DataFrame([1])).data_get())
+
+# li = [1,2,3,4,5]
+# print(next(li))
+
+import pandas as pd
+from DQN.env import StockMarketEnv
+
+# env = StockMarketEnv()
+# state = env.reset()
+# while True:
+#     print(state)
+#     state, reward, done, info =  env.step(0)
+#     if done:
+#         break
 

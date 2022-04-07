@@ -29,7 +29,7 @@ class Evaluator():
         # 之前没有存过train_history？
         try:
             self.train_history = self.ds.load_train_history() 
-
+            self.save_train_history()
         except:
             warnings.warn("no train_histroy in db, ebaluate_34 line")
             self.save_train_history()

@@ -56,6 +56,7 @@ def landmarks(df:pd.DataFrame, D = 10, P=0.05):
     remove two adjacent points $(x_i,y_i) ,(x_{i+1},y_{i+1})$ if  $x_{i+1}-xi < D$ and $\frac{|y_{i+1}-y_i|}{(|y_i|+|y_{i+1|)/2}} <P$
     '''
     bl = base_landmarks(df)     # 找出所有的拐点
+    # print(df, bl) #某些df行数太少导致landmark不出点报错
     index_list = bl.index.to_list()
     # v1  优雅了优雅了，虽然有bug，不能用  
     # for _ in range(D):
@@ -69,6 +70,7 @@ def landmarks(df:pd.DataFrame, D = 10, P=0.05):
     ## 先拿个丑陋的版本顶着用 v3
     lm = []
     p1,p2 = 0,1
+    
     lm.append(index_list[p1])
     while p1< len(index_list):
         if within_mdpp(index_list[p1],bl.loc[index_list[p1]].close,index_list[p2],bl.loc[index_list[p2]].close,D,P):

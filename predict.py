@@ -27,7 +27,7 @@ class Predictor:
         self.ds = DataStorage()
         self.dw = DataWorker()
         self.end_time = datetime.datetime.now().strftime('%Y-%m-%d')
-        self.days_back = 100
+        self.days_back = 1000   # 某些股票最近没有数据，导致这项过少使获取的股票序列过短，没有拐点而报错
     
     def load_watchlist(self):
         '''

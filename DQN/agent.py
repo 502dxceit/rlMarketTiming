@@ -107,7 +107,7 @@ class DQN:
         torch.save(self.target_net.state_dict(), path+'dqn_checkpoint.pth')
         # torch.save(self.target_net, path)
 
-    def load(self, path):
+    def load(self, path = MODEL_PATH):
         self.target_net.load_state_dict(torch.load(path+'dqn_checkpoint.pth'))
         for target_param, param in zip(self.target_net.parameters(), self.policy_net.parameters()):
             param.data.copy_(target_param.data)

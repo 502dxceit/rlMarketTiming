@@ -124,6 +124,7 @@ class DataWorker(object):
         # return ts.pro_bar(ts_code=ticker, adj='qfq', freq="d", start_date=ticker.list_date, end_date=datetime.datetime.now())
         # return self.pro.daily(ts_code = ticker.ts_code, start_date=ticker.list_date, end_date=datetime.datetime.now().strftime("%Y%m%d")
         code = ticker if ticker else self.all_tickers.sample(1).iloc[0].ts_code # retrieved was a set of records, needs a iloc[0] to take out the exact one.
+        print(code)
         start = datetime.datetime.now() - datetime.timedelta(days=days_back) if days_back else '20000101'
         start = start.strftime("%Y%m%d") if days_back else '20000101'
         stock = self.pro.daily(ts_code = code,start_date = start, end_date = end)

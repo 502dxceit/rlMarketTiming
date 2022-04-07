@@ -31,6 +31,7 @@ def test_webserver():
 def train(ts_embedded):
     env = StockMarketEnv(ts_embedded)
     agent = DQN(env.state_space, env.action_space.n, **config)
+    # agent.load(r'dqn.pth')
     trainer = Trainer(config, agent, env)
     trainer.create_data_dir()
     _ , rewards= trainer.train()    # res: tuple(actions[], rewards[])
@@ -69,9 +70,10 @@ if __name__ == "__main__":
     # WebServer().run()
     # @pysnooper.snoop("outlog.txt") # pysnooper at evaluate.save_train_history
     # def func():
-    #     train_job()
+    train_job()
     # func()    # debugged fine
     # predition_job()   # debugged fine
+    # predition_job()
     '''
 
     schedule.every(12).hours.at("00:00").do(train_job).tag('hour-tasks', 'hour') # the training process

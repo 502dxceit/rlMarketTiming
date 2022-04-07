@@ -28,7 +28,7 @@ from evaluate import Evaluator
 
 config = {
     "algo": "DQN",
-    "train_eps": 2, # 100
+    "train_eps": 200, # 100
     "eval_eps": 5,
     "gamma": 0.95,
     "epsilon_start": 0.90,
@@ -89,6 +89,7 @@ class Trainer:
     def train(self):
         print(f'Env:{self.env}, Algorithm:{self.config["algo"]}, Device:{self.config["device"]}')
         for episode in range(self.config["train_eps"]): # 若一个episode是一个股票，那么我们似乎只需要一层循环即可
+            print(episode)
             state = self.env.reset()
             running_reward = 0
             # state问题

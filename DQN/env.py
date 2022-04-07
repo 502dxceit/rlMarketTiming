@@ -7,11 +7,11 @@ import gym
 from gym import spaces
 import numpy as np
 import pandas as pd
-from data_work import DataStorage
+from data_work import DataStorage, DataWorker
 from utils import str2nparray # 加入绝对路径后，两个utils.py冲突了
 from typing import List
 import pysnooper
-
+from preprocess import Preprocessor
 from globals import *
 
 commission = 0.001 # 小于交易成本，投资没有意义
@@ -35,8 +35,9 @@ class StockMarketEnv(gym.Env):
         self.ds = DataStorage()
         # pd.DataFrame(columns=["date","tic","open","close","high","low","volume",...,"embedding"]) 
         # note: 'embedding' is a string format vector as "25.3,23,67.0,23.1,62.12"
-        self.df = self.ds.load_processed() if df is None else df
-        self.window_size = 1    # 后面注意和globals.window_size 匹配
+        # self.df = self.ds.load_processed() if df is None else df
+        # !!!! 使用env请用env.step初始化self.df
+        self.window_size = 20    # 后面注意和globals.window_size 匹配
         self.state_space = (indicators).__len__() * self.window_size    #  + oclhva_after
         self.reset()
         
@@ -94,11 +95,12 @@ class StockMarketEnv(gym.Env):
         '''
         state_, reward,done,info = None, 0, False,{}
         try:
-            i, row = next(self.step_iter) # (index,[datetime,o,c,l,h,v,t ...], landmarks, episode done or not)
-            done = True if i == len(self.df)-1 else False # is last row of data, don't try next lah.
-            state_ = row[indicators] #  + oclhva_after str2nparray(row.embedding) #"2.3, 3.2, 1.6, 0.1, ..." -> '"np.array[2.3,3.2,1.6,0.1,...]"
-            # print(row)
-            reward = self.reward(action,day = row.date, price = row.close) 
+            # i, row = next(self.step_iter) # (index,[datetime,o,c,l,h,v,t ...], landmarks, episode done or not)
+            row = next(self.step_iter)  # 用rolling_windows做迭代器，返回row: dataframe
+            # done = True if i == len(self.df) - 1 else False # is last row of data, don't try next lah.
+            state_ = row.loc[:, indicators].values.flatten() #  + oclhva_after str2nparray(row.embedding) #"2.3, 3.2, 1.6, 0.1, ..." -> '"np.array[2.3,3.2,1.6,0.1,...]"
+            state_ = np.pad(state_, (self.state_space - state_.__len__(), 0), 'constant', constant_values=(0, 0))   # state不足长前面补位0， 因为rolling的前几项前面为空
+            reward = self.reward(action,day = row.date.iloc[-1], price = row.close.iloc[-1]) 
             info = {}
         except StopIteration:
             print("end of dataset")
@@ -110,9 +112,25 @@ class StockMarketEnv(gym.Env):
         ''' switch to next ticker, and start from the first day
         '''
         # 原股票重新开始训练。在这里换一个股票会不会更好？
-        self.step_iter = self.df.iterrows() # init an iterator   
+        
+        df = self.data_get()
+        self.df = Preprocessor(df).bundle_process() # 每一个episode换一只股票
+
+        # self.step_iter = self.df.iterrows() # init an iterator   
+
+        self.step_iter = self.df.rolling(self.window_size).__iter__()   # init an iterator with rolling window
+        
         state0, _, _ ,_ = self.step(action=0)
         return state0
+
+    def data_get(self):
+        # 获取不过短的数据表
+        df = DataWorker().get()
+        if df.__len__() < 100:
+            df = self.data_get()
+        else:
+            ...
+        return df
 
     def render(self, mode='human', close=False):
         # Render the environment to the screen
@@ -132,3 +150,5 @@ if  __name__ == "__main__":
         print("t={},s= {},\ta={},\tr = {},\ts_={}".format(t,s,a,r,s_))
         env.render()
         s = s_
+
+    
