@@ -104,6 +104,7 @@ class StockMarketEnv(gym.Env):
             info = {}
         except StopIteration:
             print("end of dataset")
+            state_ = [1] * self.state_space
             done = True
 
         return state_, reward, done, info
@@ -126,7 +127,7 @@ class StockMarketEnv(gym.Env):
     def data_get(self):
         # 获取不过短的数据表
         df = DataWorker().get()
-        if df.__len__() < 100:
+        if df.__len__() < 1000:
             df = self.data_get()
         else:
             ...

@@ -48,7 +48,11 @@ def train_job():
     # zz = [torch.Tensor(list(map(float, v.split(",")))) for v in train_data.embedding] # a series of embeddings
     # zz = strSeries2TensorList(data.embedding)
     reward = train(train_data)  # []
-    train_data["reward"] = reward + [0]*(train_data.__len__()-reward.__len__()) # train(zz) # 3.train on data with model saved in model.pth and signals in table 'evaluated'
+
+
+    
+    # train_data["reward"] = reward + [0]*(train_data.__len__()-reward.__len__()) # train(zz) # 3.train on data with model saved in model.pth and signals in table 'evaluated'
+    # 此处的train_data早已不是训练中的train_datam，早就换表了
     # 仍然存在的问题，输出的reward序列为何不与原本的train序列等长？
 
     

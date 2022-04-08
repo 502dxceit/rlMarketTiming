@@ -28,7 +28,7 @@ from evaluate import Evaluator
 
 config = {
     "algo": "DQN",
-    "train_eps": 200, # 100
+    "train_eps": 2, # 100
     "eval_eps": 5,
     "gamma": 0.95,
     "epsilon_start": 0.90,
@@ -72,8 +72,9 @@ class Trainer:
         '''actions is a list of actions, for performance evaluation'''
         ds = DataStorage()
         # 列长度不匹配，缺的列补位0存起
-        self.env.df['action'] = actions + [0]*(self.env.df.__len__()-actions.__len__())
-        self.env.df['reward'] = rewards + [0]*(self.env.df.__len__()-actions.__len__())
+        self.env.df['action'] = actions
+        self.env.df['reward'] = rewards
+        print(self.env.df.__len__(), rewards.__len__())
         self.env.df['episode'] = [episode]*self.env.df.__len__()
         return ds.save_trained(self.env.df)
 
@@ -98,7 +99,7 @@ class Trainer:
                 actions,rewards =[], []
                 done = False
                 step = 0
-                while step < (len(self.env.df) - 2*self.env.window_size):
+                while True: # step < len(self.env.df)
                     step += 1
                     action = self.agent.choose_action(state)
                     next_state, reward, done, _ = self.env.step(action)
