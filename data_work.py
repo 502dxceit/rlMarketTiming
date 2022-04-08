@@ -7,6 +7,7 @@ import pandas as pd
 from functools import partial
 from globals import MAIN_PATH   # 
 import pysnooper
+from retrying import retry
 
 DATABASE = "stock.db"
 DATABASE_PATH = MAIN_PATH  # 这句话在其他import的时候就已经执行，所以未必能达到想要的效果 # 直接调用上面globals.MAIN_PATH 导致不能正确建立conn，main不能及时修改globals.MAIN_PATH
@@ -119,6 +120,7 @@ class DataWorker(object):
         s = {'HK':self.pro.hk_daily, 'US':self.pro.us_daily}
         return s[exchange]
 
+    @retry
     def get(self,ticker:str = None, days_back:int = None, end = datetime.datetime.now().strftime("%Y%m%d"))-> pd.DataFrame: 
         # retrieve all daily w.r.t. ticker from its list_date to now()
         # return ts.pro_bar(ts_code=ticker, adj='qfq', freq="d", start_date=ticker.list_date, end_date=datetime.datetime.now())
