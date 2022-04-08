@@ -15,3 +15,8 @@ mkt_oclhva = oclhva
 mkt_oclhva_after = ["mkt_open_", "mkt_close_", "mkt_high_", "mkt_low_", "mkt_volume_","mkt_amount_"] # fields after normlization
 
 window_size = 20
+
+from collections import namedtuple
+ACTION = {'buy':1, 'hold':0, 'sell':-1 }
+# 字典这么操作，就可以如 actions.buy 这样写
+actions = namedtuple("Action",ACTION)(**ACTION)     
