@@ -28,7 +28,7 @@ from evaluate import Evaluator
 
 config = {
     "algo": "DQN",
-    "train_eps": 2, # 100
+    "train_eps": 500, # 100
     "eval_eps": 5,
     "gamma": 0.95,
     "epsilon_start": 0.90,
@@ -74,7 +74,6 @@ class Trainer:
         # 列长度不匹配，缺的列补位0存起
         self.env.df['action'] = actions
         self.env.df['reward'] = rewards
-        print(self.env.df.__len__(), rewards.__len__())
         self.env.df['episode'] = [episode]*self.env.df.__len__()
         return ds.save_trained(self.env.df)
 
@@ -91,7 +90,7 @@ class Trainer:
         print(f'Env:{self.env}, Algorithm:{self.config["algo"]}, Device:{self.config["device"]}')
         for episode in range(self.config["train_eps"]): # 若一个episode是一个股票，那么我们似乎只需要一层循环即可
             print(episode)
-            state = self.env.reset()
+            state = self.env.reset(episode)
             running_reward = 0
             # state问题
             @retry(retry_on_exception=error_report,stop_max_attempt_number=5) # a more elegant error_handler than "try-except"
@@ -99,7 +98,7 @@ class Trainer:
                 actions,rewards =[], []
                 done = False
                 step = 0
-                while True: # step < len(self.env.df)
+                while True:
                     step += 1
                     action = self.agent.choose_action(state)
                     next_state, reward, done, _ = self.env.step(action)

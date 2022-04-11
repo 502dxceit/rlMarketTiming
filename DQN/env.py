@@ -10,7 +10,6 @@ import pandas as pd
 from data_work import DataStorage, DataWorker
 from utils import str2nparray # 加入绝对路径后，两个utils.py冲突了
 from typing import List
-from retrying import retry
 import pysnooper
 from preprocess import Preprocessor
 from globals import *
@@ -42,10 +41,12 @@ class StockMarketEnv(gym.Env):
         self.state_space = (indicators).__len__() * self.window_size    #  + oclhva_after
         self.reset()
         
-    def reward(self,action:int,day:str,price:float) -> float :
+
+    def reward(self,action_:int,day:str,price:float) -> float :
         '''  check the documentation for detail 
         '''
-        extremums = self.df[self.df.landmark.isin(["v","^"])]   # acquires all peaks & bottoms
+        action = action_ - 1
+        extremums = self.df[self.df.landmark.isin(["v","^"])]
         # print(extremums)
         epsilon = 0.00005
         s = {-1:'^',0:'-',1:"v"}.get(action)  # [sell, hold, buy]
@@ -77,7 +78,9 @@ class StockMarketEnv(gym.Env):
             #   r = np.tanh(abs(y2.price - price) - abs(price - y1.price)) # alternative
             else : 
                 # print(y2, type(y2))   y2可能变成tuple?
-                r_ = min(abs(price - y1.close), abs(price - y2.close))/(abs(price - (y1.close + y2.close)/2) + epsilon) 
+                
+                
+                    r_ = min(abs(price - y1.close), abs(price - y2.close))/(abs(price - (y1.close + y2.close)/2) + epsilon) 
         except:
                 # 该字段y2只有一列数据date？
             return 0
@@ -93,7 +96,7 @@ class StockMarketEnv(gym.Env):
         '''
         state_, reward,done,info = None, 0, False,{}
         try:
-            # i, row = next(self.step_iter) # (index,[datetime,o,c,l,h,v,t ...], landmarks, episode_done_or_not)
+            # i, row = next(self.step_iter) # (index,[datetime,o,c,l,h,v,t ...], landmarks, episode done or not)
             row = next(self.step_iter)  # 用rolling_windows做迭代器，返回row: dataframe
             # done = True if i == len(self.df) - 1 else False # is last row of data, don't try next lah.
             state_ = row.loc[:, indicators].values.flatten() #  + oclhva_after str2nparray(row.embedding) #"2.3, 3.2, 1.6, 0.1, ..." -> '"np.array[2.3,3.2,1.6,0.1,...]"
@@ -102,31 +105,36 @@ class StockMarketEnv(gym.Env):
             info = {}
         except StopIteration:
             print("end of dataset")
-            state_ = [1] * self.state_space
+            state_ = [1]*self.state_space
             done = True
 
         return state_, reward, done, info
 
-    def reset(self):
+    def reset(self, episode=None):
         ''' switch to next ticker, and start from the first day
         '''
+        # 原股票重新开始训练。在这里换一个股票会不会更好？
+        if episode is None:
+            df = self.data_get()
+            self.df = Preprocessor(df).bundle_process() # 每一个episode换一只股票
+        else:
+            if episode % 50 == 0:
+                df = self.data_get()
+                self.df = Preprocessor(df).bundle_process()
+        # self.step_iter = self.df.iterrows() # init an iterator   
 
-        # 每一个episode换一只股票，如果想不换股票，下面两行应当放在__init__()里
-        df = self.data_get() 
-        self.df = Preprocessor(df).bundle_process() 
-
-        # self.step_iter = self.df.iterrows() # init an iterator by row  
-        self.step_iter = self.df.rolling(self.window_size).__iter__()   # init an iterator by rolling window
+        self.step_iter = self.df.rolling(self.window_size).__iter__()   # init an iterator with rolling window
         
-        s, _, _ ,_ = self.step(action=0)
-        return s
+        state0, _, _ ,_ = self.step(action=0)
+        return state0
 
-    @retry()
     def data_get(self):
         # 获取不过短的数据表
         df = DataWorker().get()
         if df.__len__() < 1000:
-            raise Exception("序列小于1000!") # to force retrying
+            df = self.data_get()
+        else:
+            ...
         return df
 
     def render(self, mode='human', close=False):
