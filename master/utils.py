@@ -83,7 +83,35 @@ def landmarks(df:pd.DataFrame, D = 10, P=0.05):
     d = bl.loc[lm] #经过mdpp过滤后的坐标集合
     d = base_landmarks(d) # 注意加上这行的重要不同，将重新洗牌，实现peak和bottom交替
     return d[d.landmark == '^'].index, d[d.landmark == 'v'].index
-    
+
+def landmarks_BB(df:pd.DataFrame):
+    d=df[['close']]
+    dataShifted = pd.DataFrame(index = d.index)
+    for i in range(-5, 5):
+        dataShifted = pd.concat([dataShifted, d.shift(i).rename(columns = {d.columns[0]: 'shift_' + str(i)})], axis = 1)
+    dataInd = pd.DataFrame(0, index = d.index, columns = d.columns)
+    dataInd[dataShifted['shift_0'] >= dataShifted.drop('shift_0', axis = 1).max(axis = 1)] = 1
+    dataInd[dataShifted['shift_0'] <= dataShifted.drop('shift_0', axis = 1).min(axis = 1)] = -1
+    dataInd[:5] = 0
+    dataInd[-5:] = 0
+
+    extremums=dataInd[dataInd.isin([-1,1])].dropna().iloc[:,0] # 波峰波谷的索引序列
+    # print(extremums)
+    duplicate_index_real=duplicate_index(extremums) # 重复波峰\波谷的绝对坐标
+    # print(duplicate_index_real)
+    x_list=[]
+    for dup_list in duplicate_index_real:
+        ld=extremums.loc[dup_list[0]]
+        x = df[['close']].loc[dup_list,:].idxmax().iloc[0] if ld==1 else df[['close']].loc[dup_list,:].idxmin().iloc[0]
+        x_list.append(x)
+    # print(x_list)
+    it=iter(x_list)
+    for lst in duplicate_index_real:
+        lst.remove(next(it))
+        extremums.drop(index=lst,inplace=True)
+
+    return extremums[extremums==1].index,extremums[extremums==-1].index
+
 def attach_to(df:pd.DataFrame,peaks:pd.Index,bottoms:pd.Index)->pd.DataFrame:
     df['landmark'] = '-'
     df.loc[peaks,'landmark'] = '^'
@@ -98,6 +126,48 @@ def depict(s:pd.Series,peaks:pd.Index,bottoms:pd.Index)->None:
     plt.show()
 
 ##########################
+
+def duplicate_index(series,duplicate_num=2):
+    """
+    :param series: 目标dataframe某个序列值
+    :param duplicate_num: 判断相邻重复值超过设定值就输出重复的索引
+    :return: 每个计算周期内需要删除的绝对索引列表
+    """
+    series0 = series.reset_index(drop=True)
+    slide_list = [series0.index[0]]
+    slide_list_all = []
+    for i in range(series0.index[0], series0.index[-1]):
+        j = i + 1
+        diff = series0[j] - series0[i]
+        if diff == 0:
+            slide_list.append(j)
+        else:
+            slide_list.clear()
+            slide_list.append(j)
+        # print("slide_list:",slide_list)
+        if len(slide_list) >= duplicate_num:
+            target_list = slide_list.copy()
+            slide_list_all.append(target_list)
+    # print("slide_list_all:",slide_list_all)
+    index = []  # 将找到的满足条件的index合并
+    # 因为可能有前后包含的情况，只保留最长序列
+    for i in range(len(slide_list_all) - 1):
+        if set(slide_list_all[i]) < set(slide_list_all[i + 1]):
+            index.append(i)
+    m = {i: element for i, element in enumerate(slide_list_all)}
+    [m.pop(i) for i in index]
+    # 将所有需要删除的行数合并
+    # indexs_to_delete = []
+    # for i in range(len(slide_list_all)):
+    #     indexs_to_delete = list(set(indexs_to_delete).union(slide_list_all[i]))
+    index = list(m.values())
+    index_real = []  # 相邻重复序列的绝对坐标
+    for i in index:  # 用相对坐标求绝对坐标
+        lst = []
+        for j in i:
+            lst.append(series.index[j])
+        index_real.append(lst)
+    return index_real
 
 def time_cost(func):
     # train 要求返回reward与action
