@@ -56,6 +56,7 @@ class MLP(nn.Module):
             nn.Linear(128, 128), nn.ReLU(inplace=True),
             nn.Linear(128, np.prod(action_shape)),
         )
+        self.output_dim = action_shape
 
     def forward(self, obs, state=None, info={}):
         if not isinstance(obs, torch.Tensor):

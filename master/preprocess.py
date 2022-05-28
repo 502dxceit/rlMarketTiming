@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from stockstats import StockDataFrame
-from utils import landmarks, attach_to
+from utils import landmarks, attach_to, landmarks_BB
 from VAE.vae import VAE
 import torch
 import warnings
@@ -127,7 +127,7 @@ class Preprocessor():
 
     def landmark(self,df:pd.DataFrame = None):
         df = self.df if df is None else df
-        self.df = attach_to(df,*landmarks(df,10,0.10))# 10天范围内，10%上下的波动，不算特别大了吧
+        self.df = attach_to(df,*landmarks_BB(df))# 10天范围内，10%上下的波动，不算特别大了吧，这条注释当作老landmark的墓志铭
         return self
     
     def embedding(self,df = None):
@@ -152,8 +152,11 @@ class Preprocessor():
         self.df = df.dropna()
         return self
     
-    def bundle_process(self):
-        self.clean().normalize().landmark().add_indicators() #.embedding()
+    def bundle_process(self, if_market=None):
+        if if_market: 
+            self.normalize()
+        else:
+            self.clean().normalize().landmark().add_indicators() #.embedding()
         return self.df
     
     def load(self):

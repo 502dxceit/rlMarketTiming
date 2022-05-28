@@ -1,6 +1,11 @@
 # CAUTION: globals variables could be imported by other modules widely, so don't do it wildly. 
 # Any modification may lead to unpredictable consequence!
 import os
+import baostock
+
+baostock.login(user_id="anonymous", password="123456")
+
+
 MAIN_PATH = '/Users/yin/Library/CloudStorage/OneDrive-Personal/2.doing/rlMarketTiming' # will be altered only by main.py, and referenced by others
 # MAIN_PATH = os.getcwd()
 

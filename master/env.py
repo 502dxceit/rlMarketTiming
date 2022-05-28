@@ -14,7 +14,7 @@ from preprocess import Preprocessor
 from globals import *
 
 commission = 0.001 # 小于交易成本，投资没有意义
-state_space = 14 # DQN.input_dim = len([*tech_indicator_list, *after_norm])
+state_space = 18 # DQN.input_dim = len([*tech_indicator_list, *after_norm])
 action_space = 3 # spaces.Box(low=np.array([0, 0]), high=np.array([10, 10]), dtype=np.float16) 
 observation_space = spaces.Box(low=100, high=100, shape=(5,), dtype=np.float16)
 
@@ -37,7 +37,7 @@ class StockMarketEnv(gym.Env):
         # self.df = self.ds.load_processed() if df is None else df
         # !!!! 使用env请用env.step初始化self.df
         self.window_size = 20    # 后面注意和globals.window_size 匹配
-        self.state_space = (indicators).__len__() * self.window_size    #  + oclhva_after
+        self.state_space = (indicators + ['open_', 'close_', 'low_', 'high_', 'volume_', 'amount_', 'open_2', 'close_2', 'low_2', 'high_2', 'volume_2', 'amount_2']).__len__() * self.window_size    #  + oclhva_after
 
         
 
@@ -109,7 +109,8 @@ class StockMarketEnv(gym.Env):
             row = next(self.step_iter)  # 用rolling_windows做迭代器，返回row: dataframe
             # print(row, "---------" ,self.df.loc[row.index[-1], :])     # row.index[0]就是current x
             # done = True if i == len(self.df) - 1 else False # is last row of data, don't try next lah.
-            state_ = row.loc[:, indicators].values.flatten() #  + oclhva_after str2nparray(row.embedding) #"2.3, 3.2, 1.6, 0.1, ..." -> '"np.array[2.3,3.2,1.6,0.1,...]"
+            state_columns = indicators + ['open_', 'close_', 'low_', 'high_', 'volume_', 'amount_', 'open_2', 'close_2', 'low_2', 'high_2', 'volume_2', 'amount_2']
+            state_ = row.loc[:, state_columns].values.flatten() #  + oclhva_after str2nparray(row.embedding) #"2.3, 3.2, 1.6, 0.1, ..." -> '"np.array[2.3,3.2,1.6,0.1,...]"
             state_ = np.pad(state_, (self.state_space - state_.__len__(), 0), 'constant', constant_values=(0, 0))   # state不足长前面补位0， 因为rolling的前几项前面为空
             
             
@@ -120,17 +121,30 @@ class StockMarketEnv(gym.Env):
             done = True
         return state_, reward, done, info
 
-    def reset(self, episode=None):
+    def reset(self):
         ''' switch to next ticker, and start from the first day
         '''
         # 原股票重新开始训练。在这里换一个股票会不会更好？
-        if episode is None:
-            df = self.data_get()
-            self.df = Preprocessor(df).bundle_process() # 每一个episode换一只股票
-        else:
-            if episode % 50 == 0:
-                df = self.data_get()
-                self.df = Preprocessor(df).bundle_process()
+
+        df, df_market = self.data_get()
+        self.df = Preprocessor(df).bundle_process() # 每一个episode换一只股票
+        self.df_market = Preprocessor(df_market).bundle_process(if_market=True)
+        self.df_market.columns = ['code2', 'date2', 'open2', 'high2', 'low2', 'close2', 'pre_close2', 'pct_chg2',
+                                    'volume2', 'amount2', 'open_2', 'close_2', 'low_2', 'high_2', 'volume_2',
+                                    'amount_2']     # 防止连接字段冲突
+        # 日期字段去掉 - ，转为int，否则无法pd.merge
+        for i in range(self.df.__len__()):
+            self.df.iloc[i, 1] = self.df.iloc[i, 1].replace("-", "")
+
+        for i in range(self.df_market.__len__()):
+            self.df_market.iloc[i, 1] = self.df_market.iloc[i, 1].replace("-", "")
+
+        self.df["date"] = self.df["date"].astype("float64")
+        self.df_market["date2"] = self.df_market["date2"].astype("float64")
+        self.df = pd.merge(self.df, self.df_market, how="left", left_on="date", right_on="date2", sort=False)
+
+        self.df = self.df.dropna()
+
         # self.step_iter = self.df.iterrows() # init an iterator   
 
         self.step_iter = self.df.rolling(self.window_size).__iter__()   # init an iterator with rolling window
@@ -143,12 +157,12 @@ class StockMarketEnv(gym.Env):
 
     def data_get(self):
         # 获取不过短的数据表
-        df = DataWorker().get()
+        df, df_market, code = DataWorker().get()
         if df.__len__() < 1000:
-            df = self.data_get()
+            df, df_market = self.data_get()
         else:
             ...
-        return df
+        return df, df_market
 
     def render(self, mode='human', close=False):
         # Render the environment to the screen

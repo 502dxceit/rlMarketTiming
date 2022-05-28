@@ -3,6 +3,7 @@ run preditor will return all the predicted action for tickers in watchlist
 '''
 import datetime
 import pandas as pd
+from master.data_work import MODEL_PATH
 from preprocess import Preprocessor 
 from data_work import DataStorage, DataWorker
 from env import state_space, action_space
@@ -16,16 +17,20 @@ WatchList = [
     '601099.SH'
 ]
 
+MODEL_PATH = ""
+
+
 class Predictor:
 
     def __init__(self,model_path = MODEL_PATH,watch_list=WatchList):
-        self.agent = DQN(state_space, action_space, **config)   # .target_net
-        self.agent.load(model_path)
-        self.watchlist = watch_list if watch_list else self.load_watchlist() 
-        self.ds = DataStorage()
-        self.dw = DataWorker()
-        self.end_time = datetime.datetime.now().strftime('%Y-%m-%d')
-        self.days_back = 1000   # 某些股票最近没有数据，导致这项过少使获取的股票序列过短，没有拐点而报错
+        ...
+        # self.agent = DQN(state_space, action_space, **config)   # .target_net
+        # self.agent.load(model_path)
+        # self.watchlist = watch_list if watch_list else self.load_watchlist() 
+        # self.ds = DataStorage()
+        # self.dw = DataWorker()
+        # self.end_time = datetime.datetime.now().strftime('%Y-%m-%d')
+        # self.days_back = 1000   # 某些股票最近没有数据，导致这项过少使获取的股票序列过短，没有拐点而报错
     
     def load_watchlist(self):
         '''

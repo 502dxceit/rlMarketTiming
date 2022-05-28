@@ -8,11 +8,13 @@ from functools import partial
 from globals import MAIN_PATH   # 
 import pysnooper
 from retrying import retry
+import baostock
+import time
 
 DATABASE = "stock.db"
 DATABASE_PATH = MAIN_PATH  # 这句话在其他import的时候就已经执行，所以未必能达到想要的效果 # 直接调用上面globals.MAIN_PATH 导致不能正确建立conn，main不能及时修改globals.MAIN_PATH
 DATABASE_PATH = os.getcwd()     # 解决方法
-print(DATABASE_PATH + "-------------------------------")
+# print(DATABASE_PATH + "-------------------------------")
 RAW_DATA = "downloaded" # by 'date'
 PROCESSED_DATA = "downloaded" # by 'date'
 TRAINED_DATA = "downlowded_tarined" #  by 'date'
@@ -94,6 +96,7 @@ class DataWorker(object):
         # tushare_token = "72d1e47c3b0728a26bfc4a9f54132b195890fa843815f896708515f1" # 294694@tushare.pro的token
         ts.set_token(tushare_token)
         self.pro = ts.pro_api()
+        
 
     @property
     def all_tickers(self):
@@ -105,7 +108,8 @@ class DataWorker(object):
         index_codes = ['000001', '000300', '399001', '399005', '399006']
         hk_index_codes = []
         us_index_codes = []
-        s = {'SZ':'000001.SH','SH':'000001.SH','BJ':'000001.SH'}
+        s = {'SH':'000001.SH','SZ':'399001.SZ','BJ':'883991.BJ'}
+        s = {'SH':'sh.000001','SZ':'sz.399001','BJ':'bj.883991'}        # baostock风格
         return s[ticker[-2:]]
 
     def get_hk(self,ticker:str = None, days_back:int = None, end = datetime.datetime.now().strftime("%Y%m%d"))-> pd.DataFrame: 
@@ -120,31 +124,38 @@ class DataWorker(object):
         return s[exchange]
 
     @retry
-    def get(self,ticker:str = None, days_back:int = None, end = datetime.datetime.now().strftime("%Y%m%d"))-> pd.DataFrame: 
+    def get(self,ticker:str = None, days_back:int = None, end = datetime.datetime.now().strftime("%Y%m%d"), start = None)-> pd.DataFrame: 
         # retrieve all daily w.r.t. ticker from its list_date to now()
         # return ts.pro_bar(ts_code=ticker, adj='qfq', freq="d", start_date=ticker.list_date, end_date=datetime.datetime.now())
         # return self.pro.daily(ts_code = ticker.ts_code, start_date=ticker.list_date, end_date=datetime.datetime.now().strftime("%Y%m%d")
         code = ticker if ticker else self.all_tickers.sample(1).iloc[0].ts_code # retrieved was a set of records, needs a iloc[0] to take out the exact one.
-        start = datetime.datetime.now() - datetime.timedelta(days=days_back) if days_back else '20000101'
+        if start:
+            ... 
+        else:
+            start = datetime.datetime.now() - datetime.timedelta(days=days_back) if days_back else '20000101'
         start = start.strftime("%Y%m%d") if days_back else '20000101'
-        stock = self.pro.daily(ts_code = code,start_date = start, end_date = end)
-        return stock
+        stock = self.pro.daily(ts_code = code, start_date = start, end_date = end)
+        market = self.get_market(code, start = self.tp(stock.iloc[-1, 1]), end = self.tp(stock.iloc[0, 1]))     #baostock最后一天是开区间导致获取不了，所以stock最后一天不要了以匹配长度
+        market = market.iloc[::-1].reset_index().drop(["index"], axis=1)
+        # market 的 date 删掉 -
+        for i in market.index:
+            market.loc[i, "date"] = market.loc[i, "date"].replace("-", "") 
+        market.rename(columns = {"preclose": "pre_close", "pctChg":"pct_chg"}, inplace=True)
+        for i in ["open","high","low","close","pre_close","pct_chg","volume","amount"]:
+            market.loc[:, i] = pd.to_numeric(market.loc[:, i])
+        return stock[:-1], market, code
+    def tp(self, str):
+        # 把日期处理为baostock的格式，输入输出都是str
+        assert str.__len__() == 8
+        return str[0:4] + "-" + str[4:6] + "-" + str[6:]
 
-    def get_with_market(self,ticker:str = None, days_back:int = None, end = datetime.datetime.now().strftime("%Y%m%d"))-> pd.DataFrame: 
-        '''stock oclhva accompanied by market oclhva of the same period'''
-        code = ticker if ticker else self.all_tickers.sample(1).iloc[0].ts_code # retrieved was a set of records, needs a iloc[0] to take out the exact one.
-        start = datetime.datetime.now() - datetime.timedelta(days=days_back) if days_back else '20000101'
-        start = start.strftime("%Y%m%d") if days_back else '20000101'
-        # stock = self.get(ticker,start,end)
-        stock = self.ts.pro_bar(code, start_date=start, end_date=end)
-        market = self.ts.pro_bar(self.market_of(code), asset='I', start_date=start, end_date=end)
-        return stock, market
+    def get_market(self, code, start, end):
+        
+        rs = baostock.query_history_k_data_plus(self.market_of(code), "code,date,open,high,low,close,preclose,pctChg,volume,amount", start_date=start, end_date=end, frequency="d")
+
+        return rs.get_data()
 
 if __name__ == "__main__":
-    # raw_data = DataWorker().get()
-    # ds = DataStorage()
-    # ds.save_raw(df = raw_data) 
-    # print(raw_data)
     dw = DataWorker()
     
     print(dw.all_tickers.sample(1).iloc[0].ts_code)
