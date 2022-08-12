@@ -133,6 +133,7 @@ class Preprocessor():
     def embedding(self,df = None):
         df = self.df if df is None else df
         # note : 'df' must be indexed from 0 on, otherwize the slicing might malfunction
+        # df.sort_values(by=['date'], inplace=True)
         d = df[[*indicators,*oclhva_after]] # v1 只embedd这些字段
         # d = df[[*tech_indicator_list,*after_norm, *mkt_indicators, *mkt_after_norm]] # v2
         matrices = [x.values for x in d.rolling(self.windowsize)][self.windowsize-1:]# don't ask me, try it out youself     # embeding rolling_windows

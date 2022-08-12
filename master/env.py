@@ -39,10 +39,6 @@ class StockMarketEnv(gym.Env):
         self.window_size = 20    # 后面注意和globals.window_size 匹配
         self.state_space = (indicators + ['open_', 'close_', 'low_', 'high_', 'volume_', 'amount_', 'open_2', 'close_2', 'low_2', 'high_2', 'volume_2', 'amount_2']).__len__() * self.window_size    #  + oclhva_after
 
-        
-
-        # self.reset()
-        
 
     def reward(self,action_:int,day:str,x:int) -> float :
         '''  check the documentation for detail 

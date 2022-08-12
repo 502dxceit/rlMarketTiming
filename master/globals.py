@@ -5,12 +5,13 @@ import baostock
 
 baostock.login(user_id="anonymous", password="123456")
 
-
-MAIN_PATH = '/Users/yin/Library/CloudStorage/OneDrive-Personal/2.doing/rlMarketTiming' # will be altered only by main.py, and referenced by others
-# MAIN_PATH = os.getcwd()
+import os
+MAIN_PATH = os.path.dirname(__file__)  # 当前文件所在的目录
+os.chdir(MAIN_PATH)
+print(f"Working in {MAIN_PATH}")
 
 # indicators = ['kdjk', 'kdjd', 'kdjj', "rsi_6", "rsi_12", "rsi_24",'cr',"boll","boll_ub","boll_lb","wr_10","wr_6","cci","dma"] # 14
-indicators = ['kdjk', 'kdjd', 'kdjj', "rsi_6", "rsi_12", "rsi_24"]
+indicators = ['kdjk', 'kdjd', 'kdjj', "rsi_6", "rsi_12", "rsi_24","macd","atr"]
 oclhva = ["open", "close", "high", "low", "volume","amount"]  # 6 fields need to be normalized
 oclhva_after = ["open_", "close_", "high_", "low_", "volume_","amount_"] # 6 fields after normlization
 

@@ -23,30 +23,21 @@ class Evaluator():
         self.ds = DataStorage()
         # before: trained.columns = ['date','ticker','landmark','close','action','reward']
         # after: evaluated.columns = ['date','ticker','landmark','close','action','reward','asset_pct_chg'] 
-        self.trained = self.ds.load_trained() if trained is not None else trained
+        self.trained = self.ds.load_trained() if trained is None else trained
         # train_history.columns =  ['episode','ticker','train_date','mean','std','asset_change']
-
-        # 之前没有存过train_history？
+        
         try:
             self.train_history = self.ds.load_train_history() 
             self.save_train_history()
-        except:
-            warnings.warn("no train_histroy in db, ebaluate_34 line")
-            self.save_train_history()
-
         # action_history.columns =  ['date','ticker','action','reward','asset_change'] 
-        try:
             self.action_history = self.ds.load_action_history() 
-        except:
-            warnings.warn("no action_history in db, evaluate_41 line")
-
         # predicted.columns = ['predict_date','ticker','action','asset_pct_chg']
-        try:
             self.predicted = self.ds.load_predicted() # columns=['date','ticker','action'] 
         except:
-            warnings.warn("no predicted in db, evaluate_41 line")
+            warnings.warn("嗯？之前没有存过train_history？")
         
-        self.trained = self.trained.update(self.asset_change(do_short=False),join='left', overwrite=True) # 或者基于index合并，right_index = True
+        self.trained = self.trained.update(self.asset_change(do_short=False),join='left', overwrite=True) 
+        # 或者基于index合并，right_index = True
     
     def asset_change(self, do_short = False) -> pd.DataFrame:
         '''
@@ -54,7 +45,7 @@ class Evaluator():
             do_short = True if considering short operation else False. when action == -1 (sell)
             'short operation' means to operate reversely (borrow shares to sell then buy to return at lower price)
         '''
-        self.trained[['asset_pct_chg']] = 0 # 第一次添加字段需要这样写，我也不知道为什么
+        self.trained[['asset_pct_chg']] = 0 # 第一次添加字段需要这样写
         actioned = self.trained[self.trained.action.isin([-1,1])] # 只选择有买卖动作的记录
         actioned.asset_pct_chg = actioned.close.pct_change() # 相比上一次的动作价格的变化比例
         actioned.dropna()  # pct_change()完第一行是空值
@@ -90,13 +81,13 @@ class Evaluator():
         '''
         
         # train_history ['episode','ticker','train_date','count',	'mean',	'std',	'min',	'25%',	'50%',	'75%','max','asset_pct_chg']
-        df = self.trained[['reward']].describe().T  #注意这里必须两个方括号'[['，一个都不行,  self.trained.reward是series，更不行
+        df = self.trained[['reward']].describe().T  #注意这里必须两个方括号'[['才是dataframe，self.trained.reward是series，更不行
 
-        df['date'] = datetime.datetime.now().strftime("%Y%m%d") # 增加当天日期字段
+        df['date'] = datetime.datetime.now().strftime("%Y-%m-%d") # 增加当天日期字段
 
         # 不存在episode字段会报错
         df['episode'] = self.episode  # 增加episode字段，可以考虑不要这个字段，因为是append进表的，表的index就是递增
-        df['ticker'] = self.trained.ticker.iloc[0]     # 增加ticker字段，这种写法仅对一个episode一个股票有效
+        df['ticker'] = self.trained.ticker.iloc[0]     # 增加ticker字段，注：这种写法仅对一个episode一个股票有效
         df['asset_pct_chg'] = self.asset_change_eps()  # 增加asset_pct_chg字段
         self.ds.append_train_history(df) # train_history，predicted和action_history是append的
         
